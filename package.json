@@ -1,0 +1,71 @@
+{
+  "name": "sensei",
+  "version": "1.0.0",
+  "description": "",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "rimraf dist && tsup src/index.ts --format esm,cjs --dts --sourcemap",
+    "start": "node dist/index.js",
+    "start:cjs": "node dist/index.cjs",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^24.3.1",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.5"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.28.4",
+    "@iarna/toml": "^2.2.5",
+    "@types/css-tree": "^2.3.10",
+    "@types/csv-parse": "^1.1.12",
+    "@types/ini": "^4.1.1",
+    "chardet": "^2.1.0",
+    "css-tree": "^3.1.0",
+    "csv-parse": "^6.1.0",
+    "fast-xml-parser": "^5.2.5",
+    "ignore": "^7.0.5",
+    "ini": "^5.0.0",
+    "jsonc-parser": "^3.3.1",
+    "markdown-it": "^14.1.0",
+    "node-html-parser": "^7.0.1",
+    "simple-git": "^3.28.0",
+    "tree-sitter": "^0.22.4",
+    "tree-sitter-c": "^0.24.1",
+    "tree-sitter-c-sharp": "^0.23.1",
+    "tree-sitter-cpp": "^0.23.4",
+    "tree-sitter-go": "^0.25.0",
+    "tree-sitter-groovy": "^0.1.2",
+    "tree-sitter-java": "^0.23.5",
+    "tree-sitter-javascript": "^0.25.0",
+    "tree-sitter-kotlin": "^0.3.8",
+    "tree-sitter-php": "^0.24.2",
+    "tree-sitter-python": "^0.23.6",
+    "tree-sitter-ruby": "^0.23.1",
+    "tree-sitter-rust": "^0.24.0",
+    "tree-sitter-scala": "^0.24.0",
+    "tree-sitter-swift": "^0.7.1",
+    "tree-sitter-typescript": "^0.23.2",
+    "typescript": "^5.9.2",
+    "yaml": "^2.8.1"
+  }
+}
