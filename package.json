@@ -1,9 +1,31 @@
 {
   "name": "sensei",
   "version": "1.0.0",
-  "description": "",
-  "author": "",
-  "license": "ISC",
+  "description": "A production-grade codebase indexing and analysis pipeline that transforms repositories into intelligent, searchable vector embeddings for instant AI agent context and RAG systems.",
+  "author": "Shubhdeep Chhabra",
+  "license": "MIT",
+  "readme": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shubhdeep12/sensei.git"
+  },
+  "homepage": "https://github.com/shubhdeep12/sensei#readme",
+  "bugs": {
+    "url": "https://github.com/shubhdeep12/sensei/issues"
+  },
+  "keywords": [
+    "codebase",
+    "analysis",
+    "indexing",
+    "vector",
+    "embeddings",
+    "ai",
+    "rag",
+    "mcp",
+    "typescript",
+    "tree-sitter",
+    "ast-grep"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
