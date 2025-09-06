@@ -42,6 +42,26 @@ export interface FileGitInfo {
   isTracked: boolean;
 }
 
+// Progress reporting types
+export interface ProgressInfo {
+  current: number;
+  total: number;
+  percentage: number;
+  currentFile?: string;
+  phase: string;
+  startTime: Date;
+  estimatedTimeRemaining?: number;
+}
+
+export interface ProcessingError {
+  file: string;
+  error: string;
+  phase: string;
+  timestamp: Date;
+  recoverable: boolean;
+  retryCount: number;
+}
+
 // Discovery phase specific types
 export interface ProcessedFile {
   path: string;

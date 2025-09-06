@@ -1,17 +1,44 @@
 import { RepositoryScanner } from "./repository-scanner.js";
 import { FileProcessor } from "./file-processor.js";
-import { DiscoveryResults, ProcessedFile } from "../shared/types.js";
+import { DiscoveryResults, ProcessedFile, ProgressInfo, ProcessingError } from "../shared/types.js";
+import { DEFAULT_OPTIONS, PROCESSING_PHASES } from "../shared/constants.js";
 
 export class DiscoveryProcessor {
   private scanner: RepositoryScanner;
   private processor: FileProcessor;
+  private progressCallback?: (progress: ProgressInfo) => void;
+  private errors: ProcessingError[] = [];
 
   constructor(folderPath: string, options: {
     maxFileSize?: number;
     skipBinaryFiles?: boolean;
+    concurrency?: number;
   } = {}) {
     this.scanner = new RepositoryScanner(folderPath, options);
-    this.processor = new FileProcessor(options.maxFileSize);
+    this.processor = new FileProcessor(
+      options.maxFileSize || DEFAULT_OPTIONS.MAX_FILE_SIZE, 
+      options.concurrency || DEFAULT_OPTIONS.CONCURRENCY
+    );
+  }
+
+  setProgressCallback(callback: (progress: ProgressInfo) => void) {
+    this.progressCallback = callback;
+    this.scanner.setProgressCallback(callback);
+    this.processor.setProgressCallback(callback);
+  }
+
+  getErrors(): ProcessingError[] {
+    return [
+      ...this.scanner.getErrors(),
+      ...this.processor.getErrors(),
+      ...this.errors
+    ];
+  }
+
+  clearErrors() {
+    this.scanner.clearErrors();
+    this.processor.clearErrors();
+    this.errors = [];
   }
 
   async process(): Promise<DiscoveryResults & {
@@ -32,45 +59,92 @@ export class DiscoveryProcessor {
         isDocumentationFile: boolean;
       };
     }>;
+    errors: ProcessingError[];
   }> {
     console.log("=== PHASE 1: DATA INGESTION & DISCOVERY ===");
     
-    // Step 1: Scan repository
-    const scanResults = await this.scanner.scanRepository();
-    console.log(`Scanned ${scanResults.files.length} files`);
-    console.log(`Found ${scanResults.stats.actualFiles} actual files`);
-    console.log(`Skipped ${scanResults.stats.skippedFiles} files`);
+    try {
+      // Step 1: Scan repository
+      console.log("🔍 Scanning repository...");
+      const scanResults = await this.scanner.scanRepository();
+      console.log(`Scanned ${scanResults.files.length} files`);
+      console.log(`Found ${scanResults.stats.actualFiles} actual files`);
+      console.log(`Skipped ${scanResults.stats.skippedFiles} files`);
 
-    // Step 2: Process files (read content, extract metadata)
-    const processedFiles = await this.processor.processFiles(scanResults.files);
-    
-    // Step 3: Add metadata to each file
-    const enrichedFiles = processedFiles.map(file => {
-      if (file.content) {
-        const metadata = this.processor.extractFileMetadata(file.content, file);
-        const language = this.processor.detectLanguage(file, file.content);
-        
-        return {
-          ...file,
-          metadata: {
-            ...metadata,
-            language,
-            isConfigFile: this.processor.isConfigFile(file),
-            isTestFile: this.processor.isTestFile(file),
-            isDocumentationFile: this.processor.isDocumentationFile(file)
+      // Step 2: Process files (read content, extract metadata)
+      console.log("📄 Processing files...");
+      const processedFiles = await this.processor.processFiles(scanResults.files);
+      
+      // Step 3: Add metadata to each file
+      console.log("🏷️  Enriching files with metadata...");
+      const enrichedFiles = processedFiles.map(file => {
+        try {
+          if (file.content) {
+            const metadata = this.processor.extractFileMetadata(file.content, file);
+            const language = this.processor.detectLanguage(file, file.content);
+            
+            return {
+              ...file,
+              metadata: {
+                ...metadata,
+                language,
+                isConfigFile: this.processor.isConfigFile(file),
+                isTestFile: this.processor.isTestFile(file),
+                isDocumentationFile: this.processor.isDocumentationFile(file)
+              }
+            };
           }
-        };
+          return file;
+        } catch (error) {
+          const processingError: ProcessingError = {
+            file: file.path,
+            error: error instanceof Error ? error.message : String(error),
+            phase: PROCESSING_PHASES.DISCOVERY,
+            timestamp: new Date(),
+            recoverable: true,
+            retryCount: 0
+          };
+          this.errors.push(processingError);
+          
+          return {
+            ...file,
+            processingSuccess: false,
+            processingError: processingError.error
+          };
+        }
+      });
+
+      // Step 4: Generate summary
+      this.printSummary(scanResults, enrichedFiles);
+
+      // Step 5: Report errors if any
+      const allErrors = this.getErrors();
+      if (allErrors.length > 0) {
+        console.log(`\n⚠️  Processing completed with ${allErrors.length} errors:`);
+        allErrors.forEach(error => {
+          console.log(`  - ${error.file}: ${error.error} (${error.phase})`);
+        });
       }
-      return file;
-    });
 
-    // Step 4: Generate summary
-    this.printSummary(scanResults, enrichedFiles);
-
-    return {
-      ...scanResults,
-      processedFiles: enrichedFiles
-    };
+      return {
+        ...scanResults,
+        processedFiles: enrichedFiles,
+        errors: allErrors
+      };
+    } catch (error) {
+      const processingError: ProcessingError = {
+        file: 'discovery-processor',
+        error: error instanceof Error ? error.message : String(error),
+        phase: PROCESSING_PHASES.DISCOVERY,
+        timestamp: new Date(),
+        recoverable: false,
+        retryCount: 0
+      };
+      this.errors.push(processingError);
+      
+      console.error("❌ Discovery phase failed:", error);
+      throw error;
+    }
   }
 
   private printSummary(scanResults: DiscoveryResults, processedFiles: any[]) {

@@ -1,12 +1,36 @@
 import { readFile } from "fs/promises";
-import { ProcessedFile } from "../shared/types.js";
+import { ProcessedFile, ProgressInfo, ProcessingError } from "../shared/types.js";
 import { FileUtils } from "../shared/file-utils.js";
+import { 
+  LANGUAGE_MAP, 
+  TEST_PATTERNS, 
+  DOCUMENTATION_PATTERNS, 
+  CONFIG_PATTERNS,
+  COMMENT_PATTERNS,
+  DEFAULT_OPTIONS 
+} from "../shared/constants.js";
 
 export class FileProcessor {
   private maxFileSize: number;
+  private concurrency: number;
+  private errors: ProcessingError[] = [];
+  private progressCallback?: (progress: ProgressInfo) => void;
 
-  constructor(maxFileSize: number = 100 * 1024 * 1024) {
+  constructor(maxFileSize: number = DEFAULT_OPTIONS.MAX_FILE_SIZE, concurrency: number = DEFAULT_OPTIONS.CONCURRENCY) {
     this.maxFileSize = maxFileSize;
+    this.concurrency = concurrency;
+  }
+
+  setProgressCallback(callback: (progress: ProgressInfo) => void) {
+    this.progressCallback = callback;
+  }
+
+  getErrors(): ProcessingError[] {
+    return [...this.errors];
+  }
+
+  clearErrors() {
+    this.errors = [];
   }
 
   async processFile(file: ProcessedFile): Promise<{
@@ -51,16 +75,68 @@ export class FileProcessor {
     processingSuccess: boolean;
     processingError?: string;
   }>> {
-    const results = [];
+    const results: Array<ProcessedFile & {
+      content: string | null;
+      processingSuccess: boolean;
+      processingError?: string;
+    }> = [];
+    
+    const startTime = new Date();
+    let processed = 0;
 
-    for (const file of files) {
-      const result = await this.processFile(file);
-      results.push({
-        ...file,
-        content: result.content,
-        processingSuccess: result.success,
-        processingError: result.error
+    // Process files in parallel batches
+    for (let i = 0; i < files.length; i += this.concurrency) {
+      const batch = files.slice(i, i + this.concurrency);
+      
+      const batchPromises = batch.map(async (file) => {
+        try {
+          const result = await this.processFile(file);
+          return {
+            ...file,
+            content: result.content,
+            processingSuccess: result.success,
+            processingError: result.error
+          };
+        } catch (error) {
+          const processingError: ProcessingError = {
+            file: file.path,
+            error: error instanceof Error ? error.message : String(error),
+            phase: 'file-processing',
+            timestamp: new Date(),
+            recoverable: false,
+            retryCount: 0
+          };
+          this.errors.push(processingError);
+          
+          return {
+            ...file,
+            content: null,
+            processingSuccess: false,
+            processingError: processingError.error
+          };
+        }
       });
+
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
+      processed += batch.length;
+
+      // Report progress
+      if (this.progressCallback) {
+        const elapsed = Date.now() - startTime.getTime();
+        const estimatedTotal = (elapsed / processed) * files.length;
+        const estimatedRemaining = estimatedTotal - elapsed;
+
+        this.progressCallback({
+          current: processed,
+          total: files.length,
+          percentage: Math.round((processed / files.length) * 100),
+          currentFile: batch[batch.length - 1]?.relativePath,
+          phase: 'file-processing',
+          startTime,
+          estimatedTimeRemaining: estimatedRemaining
+        });
+      }
     }
 
     return results;
@@ -140,77 +216,43 @@ export class FileProcessor {
   // Detect file language based on content and extension
   detectLanguage(file: ProcessedFile, content: string): string {
     const ext = file.extension.toLowerCase();
-    
-    // Language detection based on file extension
-    const languageMap: { [key: string]: string } = {
-      'js': 'javascript',
-      'jsx': 'javascript',
-      'ts': 'typescript',
-      'tsx': 'typescript',
-      'py': 'python',
-      'java': 'java',
-      'go': 'go',
-      'rs': 'rust',
-      'cpp': 'cpp',
-      'c': 'c',
-      'cs': 'csharp',
-      'php': 'php',
-      'rb': 'ruby',
-      'swift': 'swift',
-      'kt': 'kotlin',
-      'scala': 'scala',
-      'groovy': 'groovy',
-      'css': 'css',
-      'scss': 'scss',
-      'html': 'html',
-      'xml': 'xml',
-      'json': 'json',
-      'yaml': 'yaml',
-      'yml': 'yaml',
-      'md': 'markdown',
-      'sql': 'sql',
-      'sh': 'shell',
-      'bash': 'shell',
-      'dockerfile': 'dockerfile'
-    };
-
-    return languageMap[ext] || 'text';
+    return LANGUAGE_MAP[ext] || 'text';
   }
 
   // Check if file is likely to be a configuration file
   isConfigFile(file: ProcessedFile): boolean {
-    const configExtensions = [
-      'json', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf', 'properties',
-      'env', 'env.local', 'env.production', 'env.development',
-      'dockerfile', 'docker-compose.yml', 'package.json', 'tsconfig.json',
-      'webpack.config.js', 'babel.config.js', 'eslint.config.js'
-    ];
-
-    return configExtensions.includes(file.extension.toLowerCase()) ||
-           file.relativePath.includes('config') ||
-           file.relativePath.includes('settings');
+    const ext = file.extension.toLowerCase();
+    const path = file.relativePath.toLowerCase();
+    
+    // Check extension
+    const configExtensions = ['json', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf', 'properties', 'env'];
+    if (configExtensions.includes(ext)) {
+      return true;
+    }
+    
+    // Check path patterns
+    return CONFIG_PATTERNS.some(pattern => path.includes(pattern));
   }
 
   // Check if file is likely to be a test file
   isTestFile(file: ProcessedFile): boolean {
-    const testPatterns = [
-      'test', 'spec', 'specs', '__tests__', 'tests',
-      '.test.', '.spec.', '.e2e.', '.integration.'
-    ];
-
-    return testPatterns.some(pattern => 
+    return TEST_PATTERNS.some(pattern => 
       file.relativePath.toLowerCase().includes(pattern)
     );
   }
 
   // Check if file is likely to be a documentation file
   isDocumentationFile(file: ProcessedFile): boolean {
+    const ext = file.extension.toLowerCase();
+    const path = file.relativePath.toLowerCase();
+    
+    // Check extension
     const docExtensions = ['md', 'markdown', 'rst', 'txt', 'adoc'];
-    const docPatterns = ['readme', 'changelog', 'license', 'contributing', 'docs'];
-
-    return docExtensions.includes(file.extension.toLowerCase()) ||
-           docPatterns.some(pattern => 
-             file.relativePath.toLowerCase().includes(pattern)
-           );
+    if (docExtensions.includes(ext)) {
+      return true;
+    }
+    
+    // Check path patterns
+    return DOCUMENTATION_PATTERNS.some(pattern => path.includes(pattern));
   }
 }

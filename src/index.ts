@@ -5,12 +5,17 @@
  * and file types, providing deep insights and understanding through AI-powered analysis.
  * 
  * PHASE ARCHITECTURE:
- * 1_discovery  - Data Discovery & Ingestion
- * 2_analysis   - Indexing & Chunking
- * 3_embedding  - Vector Generation & Storage
+ * 1_discovery  - Data Discovery & Ingestion (ALL file types)
+ * 2_analysis   - Code Analysis & Chunking (CORE: deep analysis, SECONDARY: basic analysis)
+ * 3_embedding  - Vector Generation & Storage (ALL file types with different strategies)
+ * 
+ * LANGUAGE STRATEGY:
+ * - Phase 1 (Discovery): Process ALL file types (86+ extensions)
+ * - Phase 2 (Analysis): CORE languages get full Tree-sitter analysis, SECONDARY get basic analysis
+ * - Phase 3 (Embedding): Embed ALL files with different quality levels based on language priority
  * 
  * PRODUCTION PIPELINE:
- * Discovery → Analysis → Embedding → RAG/Agents/MCP
+ * Discovery (ALL) → Analysis (CORE + SECONDARY) → Embedding (ALL) → RAG/Agents/MCP
  */
 
 import { DiscoveryProcessor } from "./1_discovery/index.js";
@@ -18,6 +23,7 @@ import { DiscoveryProcessor } from "./1_discovery/index.js";
 // import { AnalysisProcessor } from "./2_analysis/index.js";
 // TODO: Import EmbeddingProcessor when implemented
 // import { EmbeddingProcessor } from "./3_embedding/index.js";
+import { DEFAULT_OPTIONS } from "./shared/constants.js";
 
 export class Sensei {
   private discoveryPhase: DiscoveryProcessor;
@@ -29,8 +35,16 @@ export class Sensei {
   constructor(repositoryPath: string, options: {
     maxFileSize?: number;
     skipBinaryFiles?: boolean;
+    concurrency?: number;
   } = {}) {
-    this.discoveryPhase = new DiscoveryProcessor(repositoryPath, options);
+    // Merge with default options
+    const mergedOptions = {
+      maxFileSize: options.maxFileSize || DEFAULT_OPTIONS.MAX_FILE_SIZE,
+      skipBinaryFiles: options.skipBinaryFiles ?? DEFAULT_OPTIONS.SKIP_BINARY_FILES,
+      concurrency: options.concurrency || DEFAULT_OPTIONS.CONCURRENCY
+    };
+    
+    this.discoveryPhase = new DiscoveryProcessor(repositoryPath, mergedOptions);
     // TODO: Initialize analysis phase when implemented
     // this.analysisPhase = new AnalysisProcessor();
     // TODO: Initialize embedding phase when implemented
@@ -91,38 +105,6 @@ export class Sensei {
     throw new Error("Analysis phase not implemented yet");
   }
 
-  /**
-   * Run specific phase by name 🚧 TODO
-   */
-  async runPhase(phaseName: string, inputData?: any): Promise<any> {
-    switch (phaseName) {
-      case 'discovery':
-        return await this.discover();
-      case 'analysis':
-        console.log("🧠 Analysis Phase - TODO: Not implemented yet");
-        throw new Error("Analysis phase not implemented yet");
-      case 'enrichment':
-        console.log("✨ Enrichment Phase - TODO: Not implemented yet");
-        throw new Error("Enrichment phase not implemented yet");
-      case 'insight':
-        console.log("🤖 Insight Phase - TODO: Not implemented yet");
-        throw new Error("Insight phase not implemented yet");
-      case 'storage':
-        console.log("💾 Storage Phase - TODO: Not implemented yet");
-        throw new Error("Storage phase not implemented yet");
-      case 'indexing':
-        console.log("🔍 Indexing Phase - TODO: Not implemented yet");
-        throw new Error("Indexing phase not implemented yet");
-      case 'mastery':
-        console.log("🎯 Mastery Phase - TODO: Not implemented yet");
-        throw new Error("Mastery phase not implemented yet");
-      case 'maintenance':
-        console.log("🔄 Maintenance Phase - TODO: Not implemented yet");
-        throw new Error("Maintenance phase not implemented yet");
-      default:
-        throw new Error(`Unknown phase: ${phaseName}`);
-    }
-  }
 }
 
 // Export for use as library
@@ -130,11 +112,15 @@ export { DiscoveryProcessor } from "./1_discovery/index.js";
 // TODO: Export AnalysisProcessor when implemented
 // export { AnalysisProcessor } from "./2_analysis/index.js";
 
+// Export shared constants
+export * from "./shared/constants.js";
+
 // Main execution (for CLI usage)
 async function main() {
   const sensei = new Sensei("../shubhdeepchhabra.in", {
     maxFileSize: 50 * 1024 * 1024, // 50MB limit
-    skipBinaryFiles: true
+    skipBinaryFiles: true,
+    concurrency: 3
   });
 
   try {

@@ -3,63 +3,70 @@
  * 
  * ROLE: Creates intelligent code chunks for embedding and retrieval
  * 
+ * LANGUAGE STRATEGY:
+ * - CORE LANGUAGES (JS/TS/Python/HTML/CSS/JSON/YAML): Semantic-aware chunking with AST understanding
+ * - SECONDARY LANGUAGES (Everything else): Structure-based chunking with limited parsing
+ * 
  * IMPORTS:
- * - ParsedFile from shared/types
- * - SymbolIndex from shared/types
- * - DependencyGraph from shared/types
- * - Chunking algorithms and strategies
+ * - ProcessedFile from shared/types (ALL file types)
+ * - SymbolIndex from shared/types (varies by language)
+ * - DependencyGraph from shared/types (core languages only)
+ * - Language-specific chunking strategies
+ * - Content-based chunking for secondary languages
  * 
  * EXPORTS:
  * - CodeChunker class
- * - Chunking methods
+ * - Language-specific chunking methods
  * - Chunk optimization utilities
  * 
  * PROCESS:
- * 1. Analyzes code structure for optimal chunking
- * 2. Creates context-aware code chunks
- * 3. Ensures chunks contain complete logical units
- * 4. Optimizes chunk sizes for embedding
- * 5. Maintains code context and relationships
+ * 1. Categorizes files by language priority (core/secondary)
+ * 2. CORE LANGUAGES: Semantic-aware chunking using AST and symbol information
+ * 3. SECONDARY LANGUAGES: Structure-based chunking with limited parsing + content analysis
+ * 4. Optimizes chunks for embedding while preserving context
  * 
- * CHUNKING STRATEGIES:
- * - Function-based: One function per chunk
- * - Class-based: One class per chunk
- * - Module-based: One module per chunk
- * - Semantic-based: Logical code units
- * - Size-based: Fixed size chunks
- * - Context-based: Context-aware chunks
+ * CORE LANGUAGE CHUNKING (JS/TS/Python/HTML/CSS/JSON/YAML):
+ * - Semantic-aware chunking using AST understanding
+ * - Function-based, class-based, and module-based strategies
+ * - Context preservation with surrounding code
+ * - Dependency-aware chunking
+ * - Intelligent boundary detection
  * 
- * CHUNK TYPES:
- * - Function Chunks: Complete functions with context
- * - Class Chunks: Complete classes with methods
- * - Module Chunks: Complete modules/files
- * - Feature Chunks: Related functionality
- * - Bug Chunks: Code with potential issues
- * - Test Chunks: Test code and examples
- * - Documentation Chunks: Comments and docs
+ * SECONDARY LANGUAGE CHUNKING (Java/Go/PHP/Rust/C#/Ruby/etc):
+ * - Structure-based chunking with limited parsing
+ * - Function and class boundary detection
+ * - Basic context preservation
+ * - Size-optimized chunking
+ * - Content-based chunking for non-parsable files
  * 
- * CHUNK METADATA:
- * - Type: Function, class, module, etc.
+ * CHUNKING STRATEGIES (by language priority):
+ * - CORE: Function-based, class-based, module-based, semantic-based, context-based
+ * - SECONDARY: Function-based, class-based, size-based, content-based
+ * 
+ * CHUNK TYPES (varies by language):
+ * - CORE: Function chunks, class chunks, module chunks, feature chunks, bug chunks, test chunks
+ * - SECONDARY: Function chunks, class chunks, module chunks, content chunks, data chunks
+ * 
+ * CHUNK METADATA (quality varies by language):
+ * - Type: Function, class, module, content, etc.
  * - Size: Number of lines and characters
- * - Context: Surrounding code context
- * - Dependencies: What this chunk depends on
- * - Dependents: What depends on this chunk
+ * - Context: Surrounding code context (core languages only)
+ * - Dependencies: What this chunk depends on (core languages only)
+ * - Dependents: What depends on this chunk (core languages only)
  * - Features: What features this chunk implements
- * - Bugs: Potential issues in this chunk
+ * - Bugs: Potential issues in this chunk (core languages only)
  * - Tests: Associated test code
  * - Documentation: Related documentation
+ * - Quality: High (core), Medium (secondary)
  * 
- * CHUNK OPTIMIZATION:
- * - Ensure complete logical units
- * - Maintain code context
- * - Optimize for embedding size
- * - Preserve relationships
- * - Handle edge cases
+ * CHUNK OPTIMIZATION (by language priority):
+ * - CORE: Complete logical units, context preservation, relationship maintenance
+ * - SECONDARY: Basic logical units, limited context preservation, size optimization
  * 
  * USAGE:
- * - Called by AnalysisProcessor after dependency mapping
- * - Input: ParsedFile[] with symbols and dependencies
- * - Output: CodeChunk[] with intelligent chunks
+ * - Called by AnalysisProcessor after symbol extraction
+ * - Input: ProcessedFile[] with content from Discovery (ALL file types)
+ * - Output: CodeChunk[] with different quality levels per language
  * - Used by embedding generation and retrieval
  */
 

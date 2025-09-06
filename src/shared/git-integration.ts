@@ -1,30 +1,6 @@
 import { simpleGit, SimpleGit, LogResult, BranchSummary } from 'simple-git';
 import { join } from 'path';
-
-export interface GitInfo {
-  isGitRepo: boolean;
-  currentBranch?: string;
-  branches: string[];
-  tags: string[];
-  lastCommit?: {
-    hash: string;
-    message: string;
-    author: string;
-    date: string;
-  };
-  commitCount: number;
-  remoteUrl?: string;
-}
-
-export interface FileGitInfo {
-  path: string;
-  lastModified: string;
-  author: string;
-  commitHash: string;
-  commitMessage: string;
-  lineCount: number;
-  isTracked: boolean;
-}
+import { GitInfo, FileGitInfo } from './types.js';
 
 export class GitIntegration {
   private git: SimpleGit;

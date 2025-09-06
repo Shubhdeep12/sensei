@@ -2,36 +2,17 @@ import { createHash } from 'crypto';
 import { readFile, stat, access, constants } from 'fs/promises';
 import { detect } from 'chardet';
 import { join } from 'path';
-
-export interface FileInfo {
-  path: string;
-  size: number;
-  encoding: string;
-  hash: string;
-  isReadable: boolean;
-  isBinary: boolean;
-  lastModified: Date;
-  permissions: string;
-}
-
-export interface DuplicateFile {
-  hash: string;
-  files: string[];
-  size: number;
-}
+import { FileInfo, DuplicateFile } from './types.js';
+import { 
+  BINARY_EXTENSIONS, 
+  FILE_SIZE_THRESHOLDS, 
+  FILE_SIZE_CATEGORIES,
+  ALL_SUPPORTED_EXTENSIONS 
+} from './constants.js';
 
 export class FileUtils {
-  private static readonly LARGE_FILE_THRESHOLD = 10 * 1024 * 1024; // 10MB
-  private static readonly MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-  private static readonly BINARY_EXTENSIONS = new Set([
-    'exe', 'dll', 'so', 'dylib', 'bin', 'obj', 'o', 'a', 'lib',
-    'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'ico', 'svg',
-    'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm',
-    'mp3', 'wav', 'flac', 'aac', 'ogg', 'wma',
-    'zip', 'tar', 'gz', 'bz2', '7z', 'rar', 'dmg', 'iso',
-    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
-    'ttf', 'otf', 'woff', 'woff2', 'eot'
-  ]);
+  private static readonly LARGE_FILE_THRESHOLD = FILE_SIZE_THRESHOLDS.MEDIUM;
+  private static readonly MAX_FILE_SIZE = FILE_SIZE_THRESHOLDS.LARGE;
 
   static async getFileInfo(filePath: string): Promise<FileInfo | null> {
     try {
@@ -74,7 +55,7 @@ export class FileUtils {
 
       // Check if binary
       const ext = filePath.split('.').pop()?.toLowerCase() || '';
-      const isBinary = this.BINARY_EXTENSIONS.has(ext) || await this.isBinaryContent(filePath, size);
+      const isBinary = BINARY_EXTENSIONS.has(ext) || await this.isBinaryContent(filePath, size);
 
       // Generate hash
       const hash = await this.generateFileHash(filePath, size);
@@ -175,7 +156,7 @@ export class FileUtils {
     }
 
     const ext = filePath.split('.').pop()?.toLowerCase() || '';
-    if (this.BINARY_EXTENSIONS.has(ext)) {
+    if (BINARY_EXTENSIONS.has(ext)) {
       return { skip: true, reason: 'Binary file' };
     }
 
@@ -204,11 +185,15 @@ export class FileUtils {
   }
 
   static getFileSizeCategory(size: number): string {
-    if (size === 0) return 'empty';
-    if (size < 1024) return 'tiny';
-    if (size < 1024 * 1024) return 'small';
-    if (size < 10 * 1024 * 1024) return 'medium';
-    if (size < 100 * 1024 * 1024) return 'large';
-    return 'huge';
+    if (size === 0) return FILE_SIZE_CATEGORIES.EMPTY;
+    if (size < FILE_SIZE_THRESHOLDS.TINY) return FILE_SIZE_CATEGORIES.TINY;
+    if (size < FILE_SIZE_THRESHOLDS.SMALL) return FILE_SIZE_CATEGORIES.SMALL;
+    if (size < FILE_SIZE_THRESHOLDS.MEDIUM) return FILE_SIZE_CATEGORIES.MEDIUM;
+    if (size < FILE_SIZE_THRESHOLDS.LARGE) return FILE_SIZE_CATEGORIES.LARGE;
+    return FILE_SIZE_CATEGORIES.HUGE;
+  }
+
+  static getSupportedExtensions(): string[] {
+    return ALL_SUPPORTED_EXTENSIONS;
   }
 }

@@ -1,9 +1,10 @@
 import { readdir, stat } from "fs/promises";
 import { join, extname } from "path";
 import ignore from "ignore";
-import { ProcessedFile, DiscoveryResults } from "../shared/types.js";
+import { ProcessedFile, DiscoveryResults, ProgressInfo, ProcessingError } from "../shared/types.js";
 import { FileUtils } from "../shared/file-utils.js";
 import { GitIntegration } from "../shared/git-integration.js";
+import { DEFAULT_OPTIONS } from "../shared/constants.js";
 
 export class RepositoryScanner {
   private folderPath: string;
@@ -11,17 +12,34 @@ export class RepositoryScanner {
   private gitIntegration: GitIntegration;
   private maxFileSize: number;
   private skipBinaryFiles: boolean;
+  private concurrency: number;
+  private errors: ProcessingError[] = [];
+  private progressCallback?: (progress: ProgressInfo) => void;
 
   constructor(folderPath: string, options: {
     maxFileSize?: number;
     skipBinaryFiles?: boolean;
+    concurrency?: number;
   } = {}) {
     this.folderPath = folderPath;
     this.ignoreFilter = ignore();
     this.gitIntegration = new GitIntegration(folderPath);
-    this.maxFileSize = options.maxFileSize || 100 * 1024 * 1024; // 100MB
-    this.skipBinaryFiles = options.skipBinaryFiles ?? true;
+    this.maxFileSize = options.maxFileSize || DEFAULT_OPTIONS.MAX_FILE_SIZE;
+    this.skipBinaryFiles = options.skipBinaryFiles ?? DEFAULT_OPTIONS.SKIP_BINARY_FILES;
+    this.concurrency = options.concurrency || DEFAULT_OPTIONS.CONCURRENCY;
     this.loadGitignore();
+  }
+
+  setProgressCallback(callback: (progress: ProgressInfo) => void) {
+    this.progressCallback = callback;
+  }
+
+  getErrors(): ProcessingError[] {
+    return [...this.errors];
+  }
+
+  clearErrors() {
+    this.errors = [];
   }
 
   private async loadGitignore() {
@@ -103,90 +121,143 @@ export class RepositoryScanner {
 
   private async processFiles(files: string[]): Promise<ProcessedFile[]> {
     const processedFiles: ProcessedFile[] = [];
+    const startTime = new Date();
+    let processed = 0;
 
-    for (const file of files) {
-      try {
-        const filePath = join(this.folderPath, file);
-        const relativePath = file;
-        const extension = extname(filePath).slice(1);
-        
-        // Check if it's a directory
-        const stats = await stat(filePath);
-        if (stats.isDirectory()) {
-          processedFiles.push({
+    // Process files in parallel batches
+    for (let i = 0; i < files.length; i += this.concurrency) {
+      const batch = files.slice(i, i + this.concurrency);
+      
+      const batchPromises = batch.map(async (file) => {
+        try {
+          const filePath = join(this.folderPath, file);
+          const relativePath = file;
+          const extension = extname(filePath).slice(1);
+          
+          // Check if it's a directory
+          const stats = await stat(filePath);
+          if (stats.isDirectory()) {
+            return {
+              path: filePath,
+              relativePath,
+              extension: '',
+              fileInfo: {
+                path: filePath,
+                size: 0,
+                encoding: 'utf-8',
+                hash: '',
+                isReadable: true,
+                isBinary: false,
+                lastModified: stats.mtime,
+                permissions: stats.mode.toString(8)
+              },
+              gitInfo: null,
+              isDirectory: true,
+              shouldSkip: false
+            };
+          }
+
+          // Get file information
+          const fileInfo = await FileUtils.getFileInfo(filePath);
+          if (!fileInfo) {
+            throw new Error(`Failed to get file info for ${file}`);
+          }
+
+          // Check if we should skip this file
+          const skipCheck = FileUtils.shouldSkipFile(filePath, fileInfo.size);
+          if (skipCheck.skip) {
+            return {
+              path: filePath,
+              relativePath,
+              extension,
+              fileInfo,
+              gitInfo: null,
+              isDirectory: false,
+              shouldSkip: true,
+              skipReason: skipCheck.reason
+            };
+          }
+
+          // Skip binary files if configured
+          if (this.skipBinaryFiles && fileInfo.isBinary) {
+            return {
+              path: filePath,
+              relativePath,
+              extension,
+              fileInfo,
+              gitInfo: null,
+              isDirectory: false,
+              shouldSkip: true,
+              skipReason: 'Binary file'
+            };
+          }
+
+          // Get Git information for the file
+          const gitFileInfo = await this.gitIntegration.getFileGitInfo(filePath);
+
+          return {
             path: filePath,
             relativePath,
-            extension: '',
+            extension,
+            fileInfo,
+            gitInfo: gitFileInfo,
+            isDirectory: false,
+            shouldSkip: false
+          };
+
+        } catch (error) {
+          const processingError: ProcessingError = {
+            file: file,
+            error: error instanceof Error ? error.message : String(error),
+            phase: 'file-scanning',
+            timestamp: new Date(),
+            recoverable: true,
+            retryCount: 0
+          };
+          this.errors.push(processingError);
+          
+          // Return a placeholder for failed files
+          return {
+            path: join(this.folderPath, file),
+            relativePath: file,
+            extension: extname(file).slice(1),
             fileInfo: {
-              path: filePath,
+              path: join(this.folderPath, file),
               size: 0,
               encoding: 'utf-8',
               hash: '',
-              isReadable: true,
+              isReadable: false,
               isBinary: false,
-              lastModified: stats.mtime,
-              permissions: stats.mode.toString(8)
+              lastModified: new Date(),
+              permissions: '000'
             },
             gitInfo: null,
-            isDirectory: true,
-            shouldSkip: false
-          });
-          continue;
-        }
-
-        // Get file information
-        const fileInfo = await FileUtils.getFileInfo(filePath);
-        if (!fileInfo) {
-          console.warn(`Failed to get file info for ${file}`);
-          continue;
-        }
-
-        // Check if we should skip this file
-        const skipCheck = FileUtils.shouldSkipFile(filePath, fileInfo.size);
-        if (skipCheck.skip) {
-          processedFiles.push({
-            path: filePath,
-            relativePath,
-            extension,
-            fileInfo,
-            gitInfo: null,
             isDirectory: false,
             shouldSkip: true,
-            skipReason: skipCheck.reason
-          });
-          continue;
+            skipReason: `Processing error: ${processingError.error}`
+          };
         }
+      });
 
-        // Skip binary files if configured
-        if (this.skipBinaryFiles && fileInfo.isBinary) {
-          processedFiles.push({
-            path: filePath,
-            relativePath,
-            extension,
-            fileInfo,
-            gitInfo: null,
-            isDirectory: false,
-            shouldSkip: true,
-            skipReason: 'Binary file'
-          });
-          continue;
-        }
+      const batchResults = await Promise.all(batchPromises);
+      processedFiles.push(...batchResults);
+      processed += batch.length;
 
-        // Get Git information for the file
-        const gitFileInfo = await this.gitIntegration.getFileGitInfo(filePath);
+      // Report progress
+      if (this.progressCallback) {
+        const elapsed = Date.now() - startTime.getTime();
+        const estimatedTotal = (elapsed / processed) * files.length;
+        const estimatedRemaining = estimatedTotal - elapsed;
 
-        processedFiles.push({
-          path: filePath,
-          relativePath,
-          extension,
-          fileInfo,
-          gitInfo: gitFileInfo,
-          isDirectory: false,
-          shouldSkip: false
+        this.progressCallback({
+          current: processed,
+          total: files.length,
+          percentage: Math.round((processed / files.length) * 100),
+          currentFile: batch[batch.length - 1],
+          phase: 'file-scanning',
+          startTime,
+          estimatedTimeRemaining: estimatedRemaining
         });
-
-      } catch (error) {
-        console.warn(`Failed to process file ${file}:`, error);
       }
     }
 

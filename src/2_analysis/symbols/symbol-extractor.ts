@@ -3,49 +3,62 @@
  * 
  * ROLE: Extracts symbols (functions, classes, variables) from code for indexing
  * 
+ * LANGUAGE STRATEGY:
+ * - CORE LANGUAGES (JS/TS/Python/HTML/CSS/JSON/YAML): Full Tree-sitter symbol extraction
+ * - SECONDARY LANGUAGES (Everything else): Basic symbol extraction with limited parsing
+ * 
  * IMPORTS:
- * - ParsedFile from shared/types
+ * - ProcessedFile from shared/types
  * - ASTNode from shared/types
- * - Tree-sitter for AST parsing
+ * - Tree-sitter parsers for core languages only
+ * - Language-specific symbol extractors
+ * - Content-based analyzers for secondary languages
  * 
  * EXPORTS:
  * - SymbolExtractor class
- * - Symbol extraction methods
+ * - Language-specific symbol extraction methods
  * - Symbol validation utilities
  * 
  * PROCESS:
- * 1. Traverses AST to find symbol declarations
- * 2. Extracts symbol metadata (name, type, location, signature)
- * 3. Identifies symbol relationships (inheritance, composition)
- * 4. Builds symbol index for fast lookup
- * 5. Handles different symbol types per language
+ * 1. Categorizes files by language priority (core/secondary)
+ * 2. CORE LANGUAGES: Full Tree-sitter AST traversal + comprehensive symbol extraction
+ * 3. SECONDARY LANGUAGES: Basic AST parsing + limited symbol extraction + content analysis
+ * 4. Builds unified symbol index with different quality levels per language
  * 
- * SYMBOL TYPES EXTRACTED:
- * - Functions: name, parameters, return type, location
- * - Classes: name, methods, properties, inheritance
- * - Variables: name, type, scope, value
- * - Imports: what's imported, from where, alias
- * - Exports: what's exported, type, visibility
- * - Constants: name, value, scope
- * - Enums: name, values, scope
- * - Interfaces: name, properties, methods
- * - Types: name, definition, scope
+ * CORE LANGUAGE SYMBOL EXTRACTION (JS/TS/Python/HTML/CSS/JSON/YAML):
+ * - Full AST traversal with Tree-sitter
+ * - Comprehensive symbol metadata extraction
+ * - Relationship detection (inheritance, composition, dependencies)
+ * - Cross-reference resolution
+ * - Documentation extraction (JSDoc, docstrings, comments)
  * 
- * SYMBOL METADATA:
+ * SECONDARY LANGUAGE SYMBOL EXTRACTION (Java/Go/PHP/Rust/C#/Ruby/etc):
+ * - Basic AST parsing where possible
+ * - Limited symbol metadata extraction
+ * - Simple relationship detection
+ * - Content-based documentation extraction
+ * - Pattern-based symbol detection
+ * 
+ * SYMBOL TYPES EXTRACTED (by language priority):
+ * - CORE: Functions, classes, variables, imports, exports, constants, enums, interfaces, types
+ * - SECONDARY: Functions, classes, variables, imports, exports (limited)
+ * 
+ * SYMBOL METADATA (quality varies by language):
  * - Name: Symbol name
  * - Type: Function, class, variable, etc.
  * - Location: File path, line, column
- * - Signature: Function signature or type definition
+ * - Signature: Function signature or type definition (core languages only)
  * - Scope: Global, module, class, function
- * - Visibility: Public, private, protected
+ * - Visibility: Public, private, protected (core languages only)
  * - Documentation: Associated comments/docstrings
- * - Dependencies: What this symbol depends on
- * - Dependents: What depends on this symbol
+ * - Dependencies: What this symbol depends on (core languages only)
+ * - Dependents: What depends on this symbol (core languages only)
+ * - Quality: High (core), Medium (secondary)
  * 
  * USAGE:
  * - Called by AnalysisProcessor for symbol extraction
- * - Input: ParsedFile[] with AST from Discovery
- * - Output: SymbolIndex with all extracted symbols
+ * - Input: ProcessedFile[] with content from Discovery (ALL file types)
+ * - Output: SymbolIndex with different quality levels per language
  * - Used by dependency mapping and code chunking
  */
 
