@@ -1,12 +1,15 @@
 # 2_ANALYSIS: Indexing & Chunking
 
 ## Overview
+
 The Analysis phase extracts symbols, creates intelligent code chunks, and builds metadata for efficient retrieval.
 
 ## Sensei Theme
+
 **"A Sensei organizes knowledge systematically for quick access and deep understanding"**
 
 ## Phase Purpose
+
 - **Symbol Extraction**: Functions, classes, variables, imports
 - **Intelligent Chunking**: Context-aware code segmentation
 - **Metadata Enrichment**: Rich context for each chunk
@@ -14,6 +17,7 @@ The Analysis phase extracts symbols, creates intelligent code chunks, and builds
 - **Index Preparation**: Ready for embedding and vector storage
 
 ## File Structure
+
 ```
 src/2_analysis/
 ├── README.md                    # This overview
@@ -36,6 +40,7 @@ src/2_analysis/
 ```
 
 ## Data Flow
+
 ```
 Discovery Output → Symbol Extraction → Code Chunking → Metadata Enrichment → Analysis Results
                       ↓                    ↓                    ↓
@@ -45,6 +50,7 @@ Discovery Output → Symbol Extraction → Code Chunking → Metadata Enrichment
 ```
 
 ## Analysis Output
+
 - **IndexedFile[]**: Files with symbols, chunks, and metadata
 - **Symbol Index**: Searchable symbol database
 - **Code Chunks**: Context-aware code segments

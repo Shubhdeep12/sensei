@@ -1,10 +1,10 @@
-import { readdir, stat } from "fs/promises";
-import { join, extname } from "path";
-import ignore from "ignore";
-import { ProcessedFile, DiscoveryResults, ProgressInfo, ProcessingError } from "../shared/types.js";
-import { FileUtils } from "../shared/file-utils.js";
-import { GitIntegration } from "../shared/git-integration.js";
-import { DEFAULT_OPTIONS } from "../shared/constants.js";
+import { readdir, stat } from 'fs/promises';
+import { join, extname } from 'path';
+import ignore from 'ignore';
+import { ProcessedFile, DiscoveryResults, ProgressInfo, ProcessingError } from '../shared/types.js';
+import { FileUtils } from '../shared/file-utils.js';
+import { GitIntegration } from '../shared/git-integration.js';
+import { DEFAULT_OPTIONS } from '../shared/constants.js';
 
 export class RepositoryScanner {
   private folderPath: string;
@@ -16,11 +16,14 @@ export class RepositoryScanner {
   private errors: ProcessingError[] = [];
   private progressCallback?: (progress: ProgressInfo) => void;
 
-  constructor(folderPath: string, options: {
-    maxFileSize?: number;
-    skipBinaryFiles?: boolean;
-    concurrency?: number;
-  } = {}) {
+  constructor(
+    folderPath: string,
+    options: {
+      maxFileSize?: number;
+      skipBinaryFiles?: boolean;
+      concurrency?: number;
+    } = {}
+  ) {
     this.folderPath = folderPath;
     this.ignoreFilter = ignore();
     this.gitIntegration = new GitIntegration(folderPath);
@@ -44,39 +47,39 @@ export class RepositoryScanner {
 
   private async loadGitignore() {
     try {
-      const { readFile } = await import("fs/promises");
-      const gitignorePath = join(this.folderPath, ".gitignore");
-      const gitignoreContent = await readFile(gitignorePath, "utf-8");
+      const { readFile } = await import('fs/promises');
+      const gitignorePath = join(this.folderPath, '.gitignore');
+      const gitignoreContent = await readFile(gitignorePath, 'utf-8');
       this.ignoreFilter.add(gitignoreContent);
     } catch {
       // No .gitignore file, use default patterns
     }
-    
+
     // Add common ignore patterns
     this.ignoreFilter.add([
-      "node_modules/",
-      ".git/",
-      "dist/",
-      "build/",
-      ".DS_Store",
-      "*.log",
-      ".env*",
-      "coverage/",
-      ".nyc_output/",
-      "*.tmp",
-      "*.temp",
-      "*.cache",
-      ".vscode/",
-      ".idea/",
-      "*.swp",
-      "*.swo",
-      "*~"
+      'node_modules/',
+      '.git/',
+      'dist/',
+      'build/',
+      '.DS_Store',
+      '*.log',
+      '.env*',
+      'coverage/',
+      '.nyc_output/',
+      '*.tmp',
+      '*.temp',
+      '*.cache',
+      '.vscode/',
+      '.idea/',
+      '*.swp',
+      '*.swo',
+      '*~',
     ]);
   }
 
   async scanRepository(): Promise<DiscoveryResults> {
     console.log(`Scanning repository: ${this.folderPath}`);
-    
+
     // Get all files recursively
     const files = await this.getAllFiles();
     console.log(`Found ${files.length} files to process`);
@@ -100,18 +103,18 @@ export class RepositoryScanner {
       files: processedFiles,
       gitInfo,
       duplicates,
-      stats
+      stats,
     };
   }
 
   private async getAllFiles(): Promise<string[]> {
     try {
       const files = await readdir(this.folderPath, { recursive: true });
-      
+
       const filteredFiles = files.filter(file => {
         return !this.ignoreFilter.ignores(file);
       });
-      
+
       return filteredFiles;
     } catch (error) {
       console.error(`Error reading directory ${this.folderPath}:`, error);
@@ -127,13 +130,13 @@ export class RepositoryScanner {
     // Process files in parallel batches
     for (let i = 0; i < files.length; i += this.concurrency) {
       const batch = files.slice(i, i + this.concurrency);
-      
-      const batchPromises = batch.map(async (file) => {
+
+      const batchPromises = batch.map(async file => {
         try {
           const filePath = join(this.folderPath, file);
           const relativePath = file;
           const extension = extname(filePath).slice(1);
-          
+
           // Check if it's a directory
           const stats = await stat(filePath);
           if (stats.isDirectory()) {
@@ -149,11 +152,11 @@ export class RepositoryScanner {
                 isReadable: true,
                 isBinary: false,
                 lastModified: stats.mtime,
-                permissions: stats.mode.toString(8)
+                permissions: stats.mode.toString(8),
               },
               gitInfo: null,
               isDirectory: true,
-              shouldSkip: false
+              shouldSkip: false,
             };
           }
 
@@ -174,7 +177,7 @@ export class RepositoryScanner {
               gitInfo: null,
               isDirectory: false,
               shouldSkip: true,
-              skipReason: skipCheck.reason
+              skipReason: skipCheck.reason,
             };
           }
 
@@ -188,7 +191,7 @@ export class RepositoryScanner {
               gitInfo: null,
               isDirectory: false,
               shouldSkip: true,
-              skipReason: 'Binary file'
+              skipReason: 'Binary file',
             };
           }
 
@@ -202,9 +205,8 @@ export class RepositoryScanner {
             fileInfo,
             gitInfo: gitFileInfo,
             isDirectory: false,
-            shouldSkip: false
+            shouldSkip: false,
           };
-
         } catch (error) {
           const processingError: ProcessingError = {
             file: file,
@@ -212,10 +214,10 @@ export class RepositoryScanner {
             phase: 'file-scanning',
             timestamp: new Date(),
             recoverable: true,
-            retryCount: 0
+            retryCount: 0,
           };
           this.errors.push(processingError);
-          
+
           // Return a placeholder for failed files
           return {
             path: join(this.folderPath, file),
@@ -229,12 +231,12 @@ export class RepositoryScanner {
               isReadable: false,
               isBinary: false,
               lastModified: new Date(),
-              permissions: '000'
+              permissions: '000',
             },
             gitInfo: null,
             isDirectory: false,
             shouldSkip: true,
-            skipReason: `Processing error: ${processingError.error}`
+            skipReason: `Processing error: ${processingError.error}`,
           };
         }
       });
@@ -256,7 +258,7 @@ export class RepositoryScanner {
           currentFile: batch[batch.length - 1],
           phase: 'file-scanning',
           startTime,
-          estimatedTimeRemaining: estimatedRemaining
+          estimatedTimeRemaining: estimatedRemaining,
         });
       }
     }
@@ -277,9 +279,9 @@ export class RepositoryScanner {
         small: 0,
         medium: 0,
         large: 0,
-        huge: 0
+        huge: 0,
       },
-      encodingStats: {} as { [encoding: string]: number }
+      encodingStats: {} as { [encoding: string]: number },
     };
 
     // Group by extension
@@ -288,13 +290,13 @@ export class RepositoryScanner {
       if (!file.isDirectory && !file.shouldSkip) {
         const ext = file.extension || 'no-extension';
         extensionCounts[ext] = (extensionCounts[ext] || 0) + 1;
-        
+
         // File size statistics
         const sizeCategory = FileUtils.getFileSizeCategory(file.fileInfo.size);
         stats.fileSizeStats[sizeCategory as keyof typeof stats.fileSizeStats]++;
-        
+
         // Encoding statistics
-        stats.encodingStats[file.fileInfo.encoding] = 
+        stats.encodingStats[file.fileInfo.encoding] =
           (stats.encodingStats[file.fileInfo.encoding] || 0) + 1;
       }
     });
@@ -317,7 +319,7 @@ export class RepositoryScanner {
     const skipCheck = FileUtils.shouldSkipFile(filePath, size);
     return {
       process: !skipCheck.skip,
-      reason: skipCheck.reason
+      reason: skipCheck.reason,
     };
   }
 }

@@ -1,25 +1,25 @@
 /**
  * BUG PATTERN DETECTOR
- * 
+ *
  * ROLE: Detects potential bugs and issues in code for better context
- * 
+ *
  * IMPORTS:
  * - CodeChunk from shared/types
  * - SymbolIndex from shared/types
  * - Bug detection patterns and rules
- * 
+ *
  * EXPORTS:
  * - BugPatternDetector class
  * - Bug detection methods
  * - Bug severity assessment
- * 
+ *
  * PROCESS:
  * 1. Analyzes code chunks for common bug patterns
  * 2. Identifies potential issues and vulnerabilities
  * 3. Assesses bug severity and impact
  * 4. Provides bug context and explanations
  * 5. Tracks bug patterns across codebase
- * 
+ *
  * BUG PATTERNS:
  * - Null Pointer: Potential null reference errors
  * - Memory Leaks: Unreleased resources
@@ -29,7 +29,7 @@
  * - Logic Errors: Incorrect logic implementation
  * - Performance Issues: Inefficient algorithms
  * - Security Vulnerabilities: Security flaws
- * 
+ *
  * BUG DETECTION:
  * - Pattern matching for common bugs
  * - Static analysis for potential issues
@@ -37,7 +37,7 @@
  * - Anti-pattern identification
  * - Vulnerability scanning
  * - Performance issue detection
- * 
+ *
  * BUG METADATA:
  * - Bug Type: What kind of bug
  * - Severity: Critical, high, medium, low
@@ -46,7 +46,7 @@
  * - Context: Surrounding code context
  * - Fix: Suggested fix or workaround
  * - Examples: Similar bugs in codebase
- * 
+ *
  * USAGE:
  * - Called by AnalysisProcessor after feature detection
  * - Input: CodeChunk[] with features

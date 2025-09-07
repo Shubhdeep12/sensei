@@ -1,25 +1,25 @@
 /**
  * VECTOR STORE
- * 
+ *
  * ROLE: Abstract interface for vector database operations
- * 
+ *
  * IMPORTS:
  * - VectorEmbedding from shared/types
  * - Database adapter interfaces
  * - Query and search utilities
- * 
+ *
  * EXPORTS:
  * - VectorStore interface
  * - VectorStoreBase class
  * - Common vector operations
- * 
+ *
  * PROCESS:
  * 1. Provides unified interface for vector databases
  * 2. Handles vector storage and retrieval
  * 3. Manages vector metadata
  * 4. Provides search and query capabilities
  * 5. Handles database connections and transactions
- * 
+ *
  * VECTOR OPERATIONS:
  * - Store: Store vectors in database
  * - Retrieve: Get vectors by ID
@@ -27,14 +27,14 @@
  * - Update: Update existing vectors
  * - Delete: Remove vectors
  * - Batch: Bulk operations
- * 
+ *
  * SUPPORTED DATABASES:
  * - Pinecone: Managed vector database
  * - Weaviate: Open-source vector database
  * - Chroma: Local vector database
  * - Qdrant: High-performance vector database
  * - Milvus: Vector database for ML
- * 
+ *
  * USAGE:
  * - Used by EmbeddingProcessor for vector storage
  * - Input: VectorEmbedding[] with metadata

@@ -1,6 +1,6 @@
 /**
  * EMBEDDING PHASE TYPES
- * 
+ *
  * Type definitions specific to the Embedding phase
  */
 

@@ -184,12 +184,15 @@ export interface DependencyGraph {
 }
 
 export interface ControlFlowGraph {
-  nodes: Map<string, {
-    id: string;
-    type: 'entry' | 'exit' | 'statement' | 'condition' | 'loop' | 'function';
-    line: number;
-    label?: string;
-  }>;
+  nodes: Map<
+    string,
+    {
+      id: string;
+      type: 'entry' | 'exit' | 'statement' | 'condition' | 'loop' | 'function';
+      line: number;
+      label?: string;
+    }
+  >;
   edges: Array<{
     from: string;
     to: string;

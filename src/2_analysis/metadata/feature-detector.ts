@@ -1,25 +1,25 @@
 /**
  * FEATURE DETECTOR
- * 
+ *
  * ROLE: Detects code features and capabilities for better context
- * 
+ *
  * IMPORTS:
  * - CodeChunk from shared/types
  * - SymbolIndex from shared/types
  * - Feature detection algorithms
- * 
+ *
  * EXPORTS:
  * - FeatureDetector class
  * - Feature detection methods
  * - Feature classification utilities
- * 
+ *
  * PROCESS:
  * 1. Analyzes code chunks for features and capabilities
  * 2. Identifies API endpoints, functions, and methods
  * 3. Detects data models and schemas
  * 4. Identifies configuration and settings
  * 5. Maps features to business capabilities
- * 
+ *
  * FEATURE TYPES:
  * - API Endpoints: REST, GraphQL, RPC endpoints
  * - Data Models: Classes, interfaces, schemas
@@ -31,7 +31,7 @@
  * - Error Handling: Error management
  * - Validation: Input validation
  * - Authentication: Security features
- * 
+ *
  * FEATURE METADATA:
  * - Name: Feature name
  * - Type: API, model, utility, etc.
@@ -42,7 +42,7 @@
  * - Usage: How it's used
  * - Examples: Usage examples
  * - Tests: Associated tests
- * 
+ *
  * FEATURE DETECTION:
  * - Analyze function names and signatures
  * - Identify API patterns and conventions
@@ -50,7 +50,7 @@
  * - Find configuration patterns
  * - Identify test patterns
  * - Map business capabilities
- * 
+ *
  * USAGE:
  * - Called by AnalysisProcessor after chunking
  * - Input: CodeChunk[] with code segments

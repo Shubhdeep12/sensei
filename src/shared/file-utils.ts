@@ -3,11 +3,11 @@ import { readFile, stat, access, constants } from 'fs/promises';
 import { detect } from 'chardet';
 import { join } from 'path';
 import { FileInfo, DuplicateFile } from './types.js';
-import { 
-  BINARY_EXTENSIONS, 
-  FILE_SIZE_THRESHOLDS, 
+import {
+  BINARY_EXTENSIONS,
+  FILE_SIZE_THRESHOLDS,
   FILE_SIZE_CATEGORIES,
-  ALL_SUPPORTED_EXTENSIONS 
+  ALL_SUPPORTED_EXTENSIONS,
 } from './constants.js';
 
 export class FileUtils {
@@ -18,7 +18,7 @@ export class FileUtils {
     try {
       const stats = await stat(filePath);
       const size = stats.size;
-      
+
       // Check if file is readable
       let isReadable = false;
       try {
@@ -55,7 +55,7 @@ export class FileUtils {
 
       // Check if binary
       const ext = filePath.split('.').pop()?.toLowerCase() || '';
-      const isBinary = BINARY_EXTENSIONS.has(ext) || await this.isBinaryContent(filePath, size);
+      const isBinary = BINARY_EXTENSIONS.has(ext) || (await this.isBinaryContent(filePath, size));
 
       // Generate hash
       const hash = await this.generateFileHash(filePath, size);
@@ -68,7 +68,7 @@ export class FileUtils {
         isReadable,
         isBinary,
         lastModified: stats.mtime,
-        permissions: stats.mode.toString(8)
+        permissions: stats.mode.toString(8),
       };
     } catch (error) {
       console.warn(`Failed to get file info for ${filePath}:`, error);
@@ -78,23 +78,23 @@ export class FileUtils {
 
   private static async isBinaryContent(filePath: string, size: number): Promise<boolean> {
     if (size === 0) return false;
-    
+
     try {
       const buffer = await readFile(filePath);
       const sampleSize = Math.min(8192, size);
       const sample = buffer.subarray(0, sampleSize);
-      
+
       // Check for null bytes or high percentage of non-printable characters
       let nullBytes = 0;
       let nonPrintable = 0;
-      
+
       for (let i = 0; i < sample.length; i++) {
         const byte = sample[i];
         if (byte === 0) nullBytes++;
         if (byte < 32 && byte !== 9 && byte !== 10 && byte !== 13) nonPrintable++;
       }
-      
-      return nullBytes > 0 || (nonPrintable / sample.length) > 0.3;
+
+      return nullBytes > 0 || nonPrintable / sample.length > 0.3;
     } catch {
       return false;
     }
@@ -107,10 +107,9 @@ export class FileUtils {
         const chunkSize = 64 * 1024; // 64KB
         const buffer = await readFile(filePath);
         const firstChunk = buffer.subarray(0, chunkSize);
-        const lastChunk = size > chunkSize * 2 
-          ? buffer.subarray(size - chunkSize, size)
-          : Buffer.alloc(0);
-        
+        const lastChunk =
+          size > chunkSize * 2 ? buffer.subarray(size - chunkSize, size) : Buffer.alloc(0);
+
         const combined = Buffer.concat([firstChunk, lastChunk]);
         return createHash('sha256').update(combined).digest('hex');
       } else {
@@ -124,7 +123,7 @@ export class FileUtils {
 
   static async findDuplicateFiles(filePaths: string[]): Promise<DuplicateFile[]> {
     const hashMap = new Map<string, string[]>();
-    
+
     for (const filePath of filePaths) {
       const fileInfo = await this.getFileInfo(filePath);
       if (fileInfo && fileInfo.hash) {
@@ -142,7 +141,7 @@ export class FileUtils {
         duplicates.push({
           hash,
           files,
-          size: firstFile?.size || 0
+          size: firstFile?.size || 0,
         });
       }
     }
@@ -163,7 +162,10 @@ export class FileUtils {
     return { skip: false };
   }
 
-  static async readFileSafely(filePath: string, maxSize: number = this.MAX_FILE_SIZE): Promise<string | null> {
+  static async readFileSafely(
+    filePath: string,
+    maxSize: number = this.MAX_FILE_SIZE
+  ): Promise<string | null> {
     try {
       const stats = await stat(filePath);
       if (stats.size > maxSize) {

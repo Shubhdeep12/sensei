@@ -1,14 +1,14 @@
-import { readFile } from "fs/promises";
-import { ProcessedFile, ProgressInfo, ProcessingError } from "../shared/types.js";
-import { FileUtils } from "../shared/file-utils.js";
-import { 
-  LANGUAGE_MAP, 
-  TEST_PATTERNS, 
-  DOCUMENTATION_PATTERNS, 
+import { readFile } from 'fs/promises';
+import { ProcessedFile, ProgressInfo, ProcessingError } from '../shared/types.js';
+import { FileUtils } from '../shared/file-utils.js';
+import {
+  LANGUAGE_MAP,
+  TEST_PATTERNS,
+  DOCUMENTATION_PATTERNS,
   CONFIG_PATTERNS,
   COMMENT_PATTERNS,
-  DEFAULT_OPTIONS 
-} from "../shared/constants.js";
+  DEFAULT_OPTIONS,
+} from '../shared/constants.js';
 
 export class FileProcessor {
   private maxFileSize: number;
@@ -16,7 +16,10 @@ export class FileProcessor {
   private errors: ProcessingError[] = [];
   private progressCallback?: (progress: ProgressInfo) => void;
 
-  constructor(maxFileSize: number = DEFAULT_OPTIONS.MAX_FILE_SIZE, concurrency: number = DEFAULT_OPTIONS.CONCURRENCY) {
+  constructor(
+    maxFileSize: number = DEFAULT_OPTIONS.MAX_FILE_SIZE,
+    concurrency: number = DEFAULT_OPTIONS.CONCURRENCY
+  ) {
     this.maxFileSize = maxFileSize;
     this.concurrency = concurrency;
   }
@@ -41,61 +44,67 @@ export class FileProcessor {
     if (file.isDirectory || file.shouldSkip) {
       return {
         content: null,
-        success: true
+        success: true,
       };
     }
 
     try {
       // Read file content with proper encoding
       const content = await FileUtils.readFileSafely(file.path, this.maxFileSize);
-      
+
       if (content === null) {
         return {
           content: null,
           success: false,
-          error: 'Failed to read file content'
+          error: 'Failed to read file content',
         };
       }
 
       return {
         content,
-        success: true
+        success: true,
       };
     } catch (error) {
       return {
         content: null,
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
 
-  async processFiles(files: ProcessedFile[]): Promise<Array<ProcessedFile & {
-    content: string | null;
-    processingSuccess: boolean;
-    processingError?: string;
-  }>> {
-    const results: Array<ProcessedFile & {
-      content: string | null;
-      processingSuccess: boolean;
-      processingError?: string;
-    }> = [];
-    
+  async processFiles(files: ProcessedFile[]): Promise<
+    Array<
+      ProcessedFile & {
+        content: string | null;
+        processingSuccess: boolean;
+        processingError?: string;
+      }
+    >
+  > {
+    const results: Array<
+      ProcessedFile & {
+        content: string | null;
+        processingSuccess: boolean;
+        processingError?: string;
+      }
+    > = [];
+
     const startTime = new Date();
     let processed = 0;
 
     // Process files in parallel batches
     for (let i = 0; i < files.length; i += this.concurrency) {
       const batch = files.slice(i, i + this.concurrency);
-      
-      const batchPromises = batch.map(async (file) => {
+
+      const batchPromises = batch.map(async file => {
         try {
           const result = await this.processFile(file);
           return {
             ...file,
             content: result.content,
             processingSuccess: result.success,
-            processingError: result.error
+            processingError: result.error,
           };
         } catch (error) {
           const processingError: ProcessingError = {
@@ -104,15 +113,15 @@ export class FileProcessor {
             phase: 'file-processing',
             timestamp: new Date(),
             recoverable: false,
-            retryCount: 0
+            retryCount: 0,
           };
           this.errors.push(processingError);
-          
+
           return {
             ...file,
             content: null,
             processingSuccess: false,
-            processingError: processingError.error
+            processingError: processingError.error,
           };
         }
       });
@@ -134,7 +143,7 @@ export class FileProcessor {
           currentFile: batch[batch.length - 1]?.relativePath,
           phase: 'file-processing',
           startTime,
-          estimatedTimeRemaining: estimatedRemaining
+          estimatedTimeRemaining: estimatedRemaining,
         });
       }
     }
@@ -143,7 +152,10 @@ export class FileProcessor {
   }
 
   // Validate file content before processing
-  validateFileContent(content: string, fileInfo: ProcessedFile): {
+  validateFileContent(
+    content: string,
+    fileInfo: ProcessedFile
+  ): {
     valid: boolean;
     warnings: string[];
   } {
@@ -175,12 +187,15 @@ export class FileProcessor {
 
     return {
       valid: warnings.length === 0,
-      warnings
+      warnings,
     };
   }
 
   // Extract basic file metadata
-  extractFileMetadata(content: string, file: ProcessedFile): {
+  extractFileMetadata(
+    content: string,
+    file: ProcessedFile
+  ): {
     lineCount: number;
     wordCount: number;
     characterCount: number;
@@ -190,15 +205,17 @@ export class FileProcessor {
   } {
     const lines = content.split('\n');
     const nonEmptyLines = lines.filter(line => line.trim().length > 0);
-    
+
     // Basic comment detection (language agnostic)
     const commentLines = lines.filter(line => {
       const trimmed = line.trim();
-      return trimmed.startsWith('//') || 
-             trimmed.startsWith('#') || 
-             trimmed.startsWith('/*') ||
-             trimmed.startsWith('*') ||
-             trimmed.startsWith('<!--');
+      return (
+        trimmed.startsWith('//') ||
+        trimmed.startsWith('#') ||
+        trimmed.startsWith('/*') ||
+        trimmed.startsWith('*') ||
+        trimmed.startsWith('<!--')
+      );
     });
 
     const codeLines = nonEmptyLines.length - commentLines.length;
@@ -209,7 +226,7 @@ export class FileProcessor {
       characterCount: content.length,
       nonEmptyLines: nonEmptyLines.length,
       commentLines: commentLines.length,
-      codeLines: Math.max(0, codeLines)
+      codeLines: Math.max(0, codeLines),
     };
   }
 
@@ -223,35 +240,43 @@ export class FileProcessor {
   isConfigFile(file: ProcessedFile): boolean {
     const ext = file.extension.toLowerCase();
     const path = file.relativePath.toLowerCase();
-    
+
     // Check extension
-    const configExtensions = ['json', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf', 'properties', 'env'];
+    const configExtensions = [
+      'json',
+      'yaml',
+      'yml',
+      'toml',
+      'ini',
+      'cfg',
+      'conf',
+      'properties',
+      'env',
+    ];
     if (configExtensions.includes(ext)) {
       return true;
     }
-    
+
     // Check path patterns
     return CONFIG_PATTERNS.some(pattern => path.includes(pattern));
   }
 
   // Check if file is likely to be a test file
   isTestFile(file: ProcessedFile): boolean {
-    return TEST_PATTERNS.some(pattern => 
-      file.relativePath.toLowerCase().includes(pattern)
-    );
+    return TEST_PATTERNS.some(pattern => file.relativePath.toLowerCase().includes(pattern));
   }
 
   // Check if file is likely to be a documentation file
   isDocumentationFile(file: ProcessedFile): boolean {
     const ext = file.extension.toLowerCase();
     const path = file.relativePath.toLowerCase();
-    
+
     // Check extension
     const docExtensions = ['md', 'markdown', 'rst', 'txt', 'adoc'];
     if (docExtensions.includes(ext)) {
       return true;
     }
-    
+
     // Check path patterns
     return DOCUMENTATION_PATTERNS.some(pattern => path.includes(pattern));
   }

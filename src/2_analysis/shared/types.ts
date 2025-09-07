@@ -1,6 +1,6 @@
 /**
  * ANALYSIS PHASE TYPES
- * 
+ *
  * Type definitions specific to the Analysis phase
  */
 

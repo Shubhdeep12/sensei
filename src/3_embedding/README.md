@@ -1,12 +1,15 @@
 # 3_EMBEDDING: Vector Generation & Storage
 
 ## Overview
+
 The Embedding phase generates vector embeddings and stores them in a vector database for fast retrieval.
 
 ## Sensei Theme
+
 **"A Sensei creates a perfect memory system for instant recall and deep understanding"**
 
 ## Phase Purpose
+
 - **Vector Generation**: Create embeddings for code chunks
 - **Vector Storage**: Store in vector database (Pinecone, Weaviate, etc.)
 - **Index Optimization**: Optimize for fast retrieval
@@ -14,6 +17,7 @@ The Embedding phase generates vector embeddings and stores them in a vector data
 - **Query Preparation**: Ready for RAG and agent queries
 
 ## File Structure
+
 ```
 src/3_embedding/
 ├── README.md                    # This overview
@@ -36,6 +40,7 @@ src/3_embedding/
 ```
 
 ## Data Flow
+
 ```
 Analysis Output → Embedding Generation → Vector Storage → Index Optimization → Ready for Query
                       ↓                    ↓                    ↓
@@ -45,6 +50,7 @@ Analysis Output → Embedding Generation → Vector Storage → Index Optimizati
 ```
 
 ## Embedding Output
+
 - **Vector Database**: Stored embeddings with metadata
 - **Optimized Index**: Fast retrieval indexes
 - **Real-time Updates**: Live code change handling

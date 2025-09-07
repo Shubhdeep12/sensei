@@ -41,16 +41,25 @@
     "dist"
   ],
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsup --watch",
     "build": "rimraf dist && tsup src/index.ts --format esm,cjs --dts --sourcemap",
     "start": "node dist/index.js",
-    "start:cjs": "node dist/index.cjs",
     "typecheck": "tsc --noEmit",
-    "clean": "rimraf dist"
+    "lint": "npx eslint src --fix",
+    "format": "prettier --write \"src/**/*.{ts,js,json,md}\"",
+    "clean": "rimraf dist",
+    "test": "npm run build && node dist/index.js"
   },
   "devDependencies": {
+    "@eslint/js": "^9.35.0",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^24.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.42.0",
+    "@typescript-eslint/parser": "^8.42.0",
+    "eslint": "^9.35.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2",
     "rimraf": "^6.0.1",
     "tsup": "^8.5.0",
     "tsx": "^4.20.5"

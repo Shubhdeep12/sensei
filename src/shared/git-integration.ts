@@ -20,7 +20,7 @@ export class GitIntegration {
           isGitRepo: false,
           branches: [],
           tags: [],
-          commitCount: 0
+          commitCount: 0,
         };
       }
 
@@ -36,12 +36,14 @@ export class GitIntegration {
 
       // Get last commit
       const log = await this.git.log({ maxCount: 1 });
-      const lastCommit = log.latest ? {
-        hash: log.latest.hash,
-        message: log.latest.message,
-        author: `${log.latest.author_name} <${log.latest.author_email}>`,
-        date: log.latest.date
-      } : undefined;
+      const lastCommit = log.latest
+        ? {
+            hash: log.latest.hash,
+            message: log.latest.message,
+            author: `${log.latest.author_name} <${log.latest.author_email}>`,
+            date: log.latest.date,
+          }
+        : undefined;
 
       // Get commit count
       const commitCount = await this.git.raw(['rev-list', '--count', 'HEAD']);
@@ -49,7 +51,7 @@ export class GitIntegration {
       // Get remote URL
       let remoteUrl: string | undefined;
       try {
-        remoteUrl = await this.git.remote(['get-url', 'origin'])||undefined;
+        remoteUrl = (await this.git.remote(['get-url', 'origin'])) || undefined;
       } catch {
         // No remote configured
       }
@@ -61,7 +63,7 @@ export class GitIntegration {
         tags: tags.all,
         lastCommit,
         commitCount: parseInt(commitCount.trim()) || 0,
-        remoteUrl
+        remoteUrl,
       };
     } catch (error) {
       console.warn(`Failed to get git info for ${this.repoPath}:`, error);
@@ -69,7 +71,7 @@ export class GitIntegration {
         isGitRepo: false,
         branches: [],
         tags: [],
-        commitCount: 0
+        commitCount: 0,
       };
     }
   }
@@ -77,10 +79,10 @@ export class GitIntegration {
   async getFileGitInfo(filePath: string): Promise<FileGitInfo | null> {
     try {
       const relativePath = filePath.replace(this.repoPath + '/', '');
-      
+
       // Check if file is tracked
       const isTracked = await this.git.raw(['ls-files', '--error-unmatch', relativePath]);
-      
+
       if (isTracked.trim() === '') {
         return {
           path: relativePath,
@@ -89,13 +91,13 @@ export class GitIntegration {
           commitHash: 'untracked',
           commitMessage: 'File not tracked by git',
           lineCount: 0,
-          isTracked: false
+          isTracked: false,
         };
       }
 
       // Get file history
       const log = await this.git.log({ file: relativePath, maxCount: 1 });
-      const lastCommit = log.latest||undefined;
+      const lastCommit = log.latest || undefined;
 
       if (!lastCommit) {
         return null;
@@ -121,7 +123,7 @@ export class GitIntegration {
         commitHash: lastCommit.hash,
         commitMessage: lastCommit.message,
         lineCount: lines,
-        isTracked: true
+        isTracked: true,
       };
     } catch (error) {
       console.warn(`Failed to get git info for file ${filePath}:`, error);
@@ -136,22 +138,22 @@ export class GitIntegration {
         const relativePath = filePath.replace(this.repoPath + '/', '');
         options.file = relativePath;
       }
-      
+
       return await this.git.log(options);
     } catch (error) {
       console.warn(`Failed to get commit history:`, error);
-        return { all: [], total: 0, latest: null };
+      return { all: [], total: 0, latest: null };
     }
   }
 
   async getFileDiff(filePath: string, commitHash?: string): Promise<string> {
     try {
       const relativePath = filePath.replace(this.repoPath + '/', '');
-      
+
       if (commitHash) {
-        return await this.git.diff([commitHash, '--', relativePath])||'';
+        return (await this.git.diff([commitHash, '--', relativePath])) || '';
       } else {
-        return await this.git.diff(['--', relativePath])||'';
+        return (await this.git.diff(['--', relativePath])) || '';
       }
     } catch (error) {
       console.warn(`Failed to get diff for ${filePath}:`, error);
@@ -163,12 +165,12 @@ export class GitIntegration {
     try {
       const relativePath = filePath.replace(this.repoPath + '/', '');
       const blame = await this.git.raw(['blame', '--porcelain', relativePath]);
-      
+
       // Parse blame output
-      const lines = blame.split('\n')||[];
+      const lines = blame.split('\n') || [];
       const blameInfo: any[] = [];
       let currentCommit: any = {};
-      
+
       for (const line of lines) {
         if (line.startsWith('^')) {
           // Commit info
@@ -186,11 +188,11 @@ export class GitIntegration {
           // Code line
           blameInfo.push({
             ...currentCommit,
-            line: line.substring(1)
+            line: line.substring(1),
           });
         }
       }
-      
+
       return blameInfo;
     } catch (error) {
       console.warn(`Failed to get blame info for ${filePath}:`, error);
@@ -201,7 +203,7 @@ export class GitIntegration {
   async getStagedFiles(): Promise<string[]> {
     try {
       const status = await this.git.status();
-      return status.staged||[];
+      return status.staged || [];
     } catch (error) {
       console.warn(`Failed to get staged files:`, error);
       return [];
@@ -211,7 +213,7 @@ export class GitIntegration {
   async getModifiedFiles(): Promise<string[]> {
     try {
       const status = await this.git.status();
-      return [...status.modified||[], ...status.not_added||[]];
+      return [...(status.modified || []), ...(status.not_added || [])];
     } catch (error) {
       console.warn(`Failed to get modified files:`, error);
       return [];
